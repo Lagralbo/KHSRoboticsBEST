@@ -1,3 +1,4 @@
+
 """
 This code has two control modes: 'Tank Mode' and 'Arcade Mode'. The Start
 button on your gamepad switches the robot between the two modes.
@@ -65,8 +66,11 @@ led.direction = digitalio.Direction.OUTPUT
 # Mode
 TANK_MODE = 0
 ARCADE_MODE = 1
-mode = TANK_MODE
+mode = ARCADE_MODE
 prev_start_button = False
+
+servo_speed = 1
+previous_servo_angle = 0
 
 # Useful Functions
 def moveLeftWheel(input):  # -1 <input <1
@@ -82,31 +86,21 @@ def moveMotor1(input):  # -1 <input <1
     motor_task.throttle = throttle_task
 
 def setServo1angle(angle):
-    servo_angle = angle
+    servo_angle = constrain(previous_servo_angle + angle, 0, servo_range)
     servo_task.angle = servo_angle
+    return servo_angle
 
 def switchLed(seconds):  # turns the led and sleep for a determined ammount of time
     led.value = not led.value
     time.sleep(seconds)
 
-def switchOrGetMode():
-    """
-    nonlocal mode
-    if mode == TANK_MODE:
-        mode = ARCADE_MODE
-    elif mode == ARCADE_MODE:
-        mode = TANK_MODE
-    nonlocal prev_start_button
-    prev_start_button = gizmo.buttons.start
-    """
-
 def getServoAngle():
-    angle = 45
+    angle = 0
     if gizmo.buttons.left_trigger:
-        angle = 0
+        angle += 1
     elif gizmo.buttons.left_shoulder:
-        angle = 90
-    return angle
+        angle -= 1
+    return angle * servo_speed
 
 def getMotorTaskInput():
     input = 0
@@ -143,9 +137,10 @@ while True:
         speed = map_range(gizmo.axes.left_y, 0, 255, -1.0, 1.0)
         steering = map_range(gizmo.axes.left_x, 0, 255, -1.0, 1.0)
 
-        moveLeftWheel(constrain(speed - steering, -1.0, 1.0))
-        moveRightWheel(constrain(speed + steering, -1.0, 1.0))
+        moveLeftWheel(constrain(speed + steering, -1.0, 1.0))
+        moveRightWheel(constrain(speed - steering, -1.0, 1.0))
 
     # arms
     moveMotor1(getMotorTaskInput())
-    setServo1angle(getServoAngle())
+    previous_servo_angle = setServo1angle(getServoAngle())
+
