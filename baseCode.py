@@ -4,8 +4,8 @@ This code has two control modes: 'Tank Mode' and 'Arcade Mode'. The Start
 button on your gamepad switches the robot between the two modes.
 
 Here are the controls for Tank Mode:
-Left Joystick Up/Down    - Motor 4 Fwd/Rev
-Right Joystick Up/Down   - Motor 3 Fwd/Rev
+Left Joystick Up/Down    - Motor 1 Fwd/Rev
+Right Joystick Up/Down   - Motor 2 Fwd/Rev
 
 Here are the controls for Arcade Mode:
 Left Joystick Up/Down    - Robot Fwd/Rev
@@ -38,17 +38,17 @@ servo_range = 90  # degrees
 
 # Configure the motors & servos for the ports they are connected to
 motor_left = servo.ContinuousServo(
-    pwmio.PWMOut(gizmo.MOTOR_4, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.MOTOR_1, frequency=pwm_freq),
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
 motor_right = servo.ContinuousServo(
-    pwmio.PWMOut(gizmo.MOTOR_3, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.MOTOR_2, frequency=pwm_freq),
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
 motor_task = servo.ContinuousServo(
-    pwmio.PWMOut(gizmo.MOTOR_1, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.MOTOR_4, frequency=pwm_freq),
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
