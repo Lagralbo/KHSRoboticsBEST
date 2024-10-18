@@ -38,17 +38,17 @@ servo_range = 90  # degrees
 
 # Configure the motors & servos for the ports they are connected to
 motor_left = servo.ContinuousServo(
-    pwmio.PWMOut(gizmo.MOTOR_1, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.SERVO_2, frequency=pwm_freq),
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
 motor_right = servo.ContinuousServo(
-    pwmio.PWMOut(gizmo.MOTOR_2, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.SERVO_3, frequency=pwm_freq),
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
 motor_task = servo.ContinuousServo(
-    pwmio.PWMOut(gizmo.MOTOR_4, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.SERVO_4, frequency=pwm_freq),
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
@@ -70,6 +70,7 @@ mode = ARCADE_MODE
 prev_start_button = False
 
 servo_speed = 1
+arm_speed = 1
 previous_servo_angle = 0
 
 # Useful Functions
@@ -81,8 +82,8 @@ def moveRightWheel(input):  # -1 <input <1
     throttle_right = input
     motor_right.throttle = throttle_right
 
-def moveMotor1(input):  # -1 <input <1
-    throttle_task = input
+def moveArm(input):  # -1 <input <1
+    throttle_task = input * arm_speed
     motor_task.throttle = throttle_task
 
 def setServo1angle(angle):
@@ -105,17 +106,17 @@ def getServoAngle():
 def getMotorTaskInput():
     input = 0
     if gizmo.buttons.right_trigger:
-        input = 1.0
+        input += 1.0
     elif gizmo.buttons.right_shoulder:
-        input = -1.0
+        input -= 1.0
     return input
 
 
 # Keep running forever
 while True:
     gizmo.refresh()
-    switchLed(0)
-
+    switchLed(0)    
+    
     # modes
     if gizmo.buttons.start and not prev_start_button:
         if mode == TANK_MODE:
@@ -141,6 +142,6 @@ while True:
         moveRightWheel(constrain(speed - steering, -1.0, 1.0))
 
     # arms
-    moveMotor1(getMotorTaskInput())
+    moveArm(getMotorTaskInput())
     previous_servo_angle = setServo1angle(getServoAngle())
 
