@@ -1,12 +1,11 @@
-
 """
 This code has two control modes: 'Tank Mode' and 'Arcade Mode'. The Start
 button on your gamepad switches the robot between the two modes.
 
 Here are the controls for Tank Mode:
-Left Joystick Up/Down    - Motor 1 Fwd/Rev
-Right Joystick Up/Down   - Motor 2 Fwd/Rev
-
+Left Joystick Up/Down    - Motor 1 Fwd/Rev 
+Right Joystick Up/Down   - Motor 2 Fwd/Rev 
+ 
 Here are the controls for Arcade Mode:
 Left Joystick Up/Down    - Robot Fwd/Rev
 Left Joystick Left/Right - Robot Turn Left/Right
@@ -59,9 +58,11 @@ servo_task = servo.Servo(
     max_pulse=max_pulse
 )
 
-# Configure the built-in LED pin as an output
+# Configure the Sensors and Leds
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
+limitSwitch = digitalio.DigitalInOut(gizmo.GPIO_1)
+limitSwitch.switch_to_input()
 
 # Mode
 TANK_MODE = 0
@@ -69,9 +70,11 @@ ARCADE_MODE = 1
 mode = ARCADE_MODE
 prev_start_button = False
 
+# Useful variables
 servo_speed = 1
 arm_speed = 1
 previous_servo_angle = 0
+isAutonomous = False
 
 # Useful Functions
 def moveLeftWheel(input):  # -1 <input <1
@@ -104,19 +107,23 @@ def getServoAngle():
     return angle * servo_speed
 
 def getMotorTaskInput():
-    input = 0
+    input = 0.2
     if gizmo.buttons.right_trigger:
-        input += 1.0
+        input += 0.8
     elif gizmo.buttons.right_shoulder:
-        input -= 1.0
+        input -= 1.2
     return input
+def autonomousMode():
+    print(":)")
+    time.sleep(3.0)
 
 
 # Keep running forever
 while True:
     gizmo.refresh()
-    switchLed(0)    
-    
+    switchLed(0)
+    # print(limitSwitch.value) 
+
     # modes
     if gizmo.buttons.start and not prev_start_button:
         if mode == TANK_MODE:
@@ -144,4 +151,9 @@ while True:
     # arms
     moveArm(getMotorTaskInput())
     previous_servo_angle = setServo1angle(getServoAngle())
+    
+    if (gizmo.buttons.a):
+        isAutonomous = True
+        autonomousMode()
+        isAutonomous = False
 
