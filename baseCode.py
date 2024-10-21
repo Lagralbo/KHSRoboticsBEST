@@ -3,9 +3,9 @@ This code has two control modes: 'Tank Mode' and 'Arcade Mode'. The Start
 button on your gamepad switches the robot between the two modes.
 
 Here are the controls for Tank Mode:
-Left Joystick Up/Down    - Motor 1 Fwd/Rev 
-Right Joystick Up/Down   - Motor 2 Fwd/Rev 
- 
+Left Joystick Up/Down    - Motor 1 Fwd/Rev
+Right Joystick Up/Down   - Motor 2 Fwd/Rev
+
 Here are the controls for Arcade Mode:
 Left Joystick Up/Down    - Robot Fwd/Rev
 Left Joystick Left/Right - Robot Turn Left/Right
@@ -15,6 +15,12 @@ Right Trigger            - Motor 4 Forward
 Right Shoulder Button    - Motor 4 Reverse
 Left Trigger             - Servo 1 to 0 degrees
 Left Shoulder Button     - Servo 1 to 90 degrees
+
+Confinguration:
+SERVO_1 goes to the motor that moves the arm up and down
+SERVO_2 goes to the motor that controls the left wheel
+SERVO_3 goes to the motor that controls the right wheel
+SERVO_4 should go to a servo that opens and closes the arm(?)
 
 When neither the left trigger nor shoulder button are pressed, the servo will
 go to 45 degrees.
@@ -47,12 +53,12 @@ motor_right = servo.ContinuousServo(
     max_pulse=max_pulse
 )
 motor_task = servo.ContinuousServo(
-    pwmio.PWMOut(gizmo.SERVO_4, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.SERVO_1, frequency=pwm_freq),
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
 servo_task = servo.Servo(
-    pwmio.PWMOut(gizmo.SERVO_1, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.SERVO_4, frequency=pwm_freq),
     actuation_range=servo_range,
     min_pulse=min_pulse,
     max_pulse=max_pulse
@@ -61,8 +67,10 @@ servo_task = servo.Servo(
 # Configure the Sensors and Leds
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
-limitSwitch = digitalio.DigitalInOut(gizmo.GPIO_1)
-limitSwitch.switch_to_input()
+upLimitSwitch = digitalio.DigitalInOut(gizmo.GPIO_1)
+upLimitSwitch.switch_to_input()
+downLimitSwitch = digitalio.DigitalInOut(gizmo.GPIO_2)
+downLimitSwitch.switch_to_input()
 
 # Mode
 TANK_MODE = 0
@@ -106,31 +114,38 @@ def getServoAngle():
         angle -= 1
     return angle * servo_speed
 
-def getMotorTaskInput():
-    input = 0.2
-    if gizmo.buttons.right_trigger:
-        input += 0.8
-    elif gizmo.buttons.right_shoulder:
-        input -= 1.2
+def getMotorTaskInput(isArcadeMode):
+    input = 0.2 
+    if (isArcadeMode): 
+        input = -map_range(gizmo.axes.right_y, 0, 255, -1.0, 1.0)
+    else: 
+        if gizmo.buttons.right_trigger:
+            input += 0.7
+        elif gizmo.buttons.right_shoulder and not downLimitSwitch.value:
+            input -= 0.7
     return input
-def autonomousMode():
-    print(":)")
-    time.sleep(3.0)
-
-
+def autonomousMode(): 
+    while not upLimitSwitch.value:
+        moveArm(1)
+        if (gizmo.buttons.x):
+            break
+    moveArm(0.2)
+    time.sleep(1.0) 
+    moveArm(-0.2)
+    time.sleep(1.5)
+    
+    
 # Keep running forever
 while True:
     gizmo.refresh()
     switchLed(0)
-    # print(limitSwitch.value) 
+    # print(upLimitSwitch.value)
 
     # modes
     if gizmo.buttons.start and not prev_start_button:
         if mode == TANK_MODE:
             mode = ARCADE_MODE
         elif mode == ARCADE_MODE:
-            mode = TANK_MODE
-            mode = TANK_MODE
             mode = TANK_MODE
         prev_start_button = gizmo.buttons.start
     elif not gizmo.buttons.start == prev_start_button:
@@ -149,11 +164,12 @@ while True:
         moveRightWheel(constrain(speed - steering, -1.0, 1.0))
 
     # arms
-    moveArm(getMotorTaskInput())
+    moveArm(getMotorTaskInput(mode == ARCADE_MODE))
     previous_servo_angle = setServo1angle(getServoAngle())
-    
+
     if (gizmo.buttons.a):
-        isAutonomous = True
+        isAutonomous = True 
         autonomousMode()
         isAutonomous = False
+    
 
