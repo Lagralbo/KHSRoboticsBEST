@@ -1,3 +1,4 @@
+
 """
 This code has two control modes: 'Tank Mode' and 'Arcade Mode'. The Start
 button on your gamepad switches the robot between the two modes.
@@ -39,7 +40,7 @@ gizmo = Gizmo()
 pwm_freq = 50  # Hertz
 min_pulse = 1000  # milliseconds
 max_pulse = 2000  # milliseconds
-servo_range = 90  # degrees
+servo_range = 180  # degrees
 
 # Configure the motors & servos for the ports they are connected to
 motor_left = servo.ContinuousServo(
@@ -69,8 +70,8 @@ led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 upLimitSwitch = digitalio.DigitalInOut(gizmo.GPIO_1)
 upLimitSwitch.switch_to_input()
-downLimitSwitch = digitalio.DigitalInOut(gizmo.GPIO_2)
-downLimitSwitch.switch_to_input()
+clawSensor = digitalio.DigitalInOut(gizmo.GPIO_2)
+clawSensor.switch_to_input()
 
 # Mode
 TANK_MODE = 0
@@ -92,6 +93,10 @@ def moveLeftWheel(input):  # -1 <input <1
 def moveRightWheel(input):  # -1 <input <1
     throttle_right = input
     motor_right.throttle = throttle_right
+    
+def moveBothWheels(input):
+    moveLeftWheel(input)
+    moveRightWheel(input)
 
 def moveArm(input):  # -1 <input <1
     throttle_task = input * arm_speed
@@ -121,18 +126,47 @@ def getMotorTaskInput(isArcadeMode):
     else: 
         if gizmo.buttons.right_trigger:
             input += 0.7
-        elif gizmo.buttons.right_shoulder and not downLimitSwitch.value:
+        elif gizmo.buttons.right_shoulder:
             input -= 0.7
     return input
 def autonomousMode(): 
+    setServo1angle(-180)
     while not upLimitSwitch.value:
         moveArm(1)
         if (gizmo.buttons.x):
             break
-    moveArm(0.2)
+    while not clawSensor.value:
+        moveBothWheels(-1)
+        if (gizmo.buttons.x):
+            break
+
+    moveBothWheels(0.3)
+    time.sleep(1.0)
+    moveBothWheels(0)
+    
+    moveArm(-1)
     time.sleep(1.0) 
-    moveArm(-0.2)
-    time.sleep(1.5)
+    while not upLimitSwitch.value:
+        moveArm(1)
+        if (gizmo.buttons.x):
+            break
+    
+    setServo1angle(180)
+    moveArm(-0.3)
+    time.sleep(0.5)
+    moveArm(0.4)
+    
+    moveBothWheels(-0.3)
+    time.sleep(0.25)
+    moveBothWheels(0)
+    
+    setServo1angle(-120)
+    time.sleep(0.4)
+    
+    while True:
+        moveBothWheels(1)
+        if (gizmo.buttons.x):
+            break
     
     
 # Keep running forever
@@ -172,4 +206,3 @@ while True:
         autonomousMode()
         isAutonomous = False
     
-
