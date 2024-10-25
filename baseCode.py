@@ -1,30 +1,29 @@
-
 """
 This code has two control modes: 'Tank Mode' and 'Arcade Mode'. The Start
 button on your gamepad switches the robot between the two modes.
 
-Here are the controls for Tank Mode:
-Left Joystick Up/Down    - Motor 1 Fwd/Rev
-Right Joystick Up/Down   - Motor 2 Fwd/Rev
+Controls:
 
-Here are the controls for Arcade Mode:
-Left Joystick Up/Down    - Robot Fwd/Rev
-Left Joystick Left/Right - Robot Turn Left/Right
+TANK_MODE:
+Left Joystick (Up&Down)  - Left wheel
+Right Joystick (Up&Down) - Right wheel
 
-These controls work in both modes:
-Right Trigger            - Motor 4 Forward
-Right Shoulder Button    - Motor 4 Reverse
-Left Trigger             - Servo 1 to 0 degrees
-Left Shoulder Button     - Servo 1 to 90 degrees
+ARCADE_MODE:
+Left Joystick (Up&Down)    - Both Wheels
+Left Joystick (Left&Right) - Turning
+
+COMMON:
+A Button     - Autonomous Mode
+Y Button     - Autonomous Mode (For easier rounds)
+Start Button - Switching between tank and arcade modes
 
 Confinguration:
+GPIO_1  goes to the microswitch that determines the upward limit of the arm
+GPIO_2  goes to the microswitch that detects a collision with the bottom of the arm(?)
 SERVO_1 goes to the motor that moves the arm up and down
 SERVO_2 goes to the motor that controls the left wheel
 SERVO_3 goes to the motor that controls the right wheel
-SERVO_4 should go to a servo that opens and closes the arm(?)
-
-When neither the left trigger nor shoulder button are pressed, the servo will
-go to 45 degrees.
+SERVO_4 should go to a servo that opens and closes the arm claw
 """
 
 import board
@@ -93,7 +92,7 @@ def moveLeftWheel(input):  # -1 <input <1
 def moveRightWheel(input):  # -1 <input <1
     throttle_right = input
     motor_right.throttle = throttle_right
-    
+
 def moveBothWheels(input):
     moveLeftWheel(input)
     moveRightWheel(input)
@@ -120,55 +119,85 @@ def getServoAngle():
     return angle * servo_speed
 
 def getMotorTaskInput(isArcadeMode):
-    input = 0.2 
-    if (isArcadeMode): 
+    input = 0.2
+    if (isArcadeMode):
         input = -map_range(gizmo.axes.right_y, 0, 255, -1.0, 1.0)
-    else: 
+    else:
         if gizmo.buttons.right_trigger:
             input += 0.7
         elif gizmo.buttons.right_shoulder:
             input -= 0.7
     return input
-def autonomousMode(): 
+def autonomousMode():
     setServo1angle(-180)
     while not upLimitSwitch.value:
         moveArm(1)
         if (gizmo.buttons.x):
-            break
+            return
     while not clawSensor.value:
         moveBothWheels(-1)
         if (gizmo.buttons.x):
-            break
+            return
 
     moveBothWheels(0.3)
     time.sleep(1.0)
     moveBothWheels(0)
     
     moveArm(-1)
-    time.sleep(1.0) 
-    while not upLimitSwitch.value:
-        moveArm(1)
-        if (gizmo.buttons.x):
-            break
+    time.sleep(0.875)
+    moveArm(0.3)
     
+    moveBothWheels(-1)
+    time.sleep(0.1)
+    moveBothWheels(0)
+
+    moveArm(-1)
     setServo1angle(180)
-    moveArm(-0.3)
+    time.sleep(1.0)
+
+    moveArm(1)
     time.sleep(0.5)
-    moveArm(0.4)
-    
-    moveBothWheels(-0.3)
+    moveArm(0.3)
+
+    moveBothWheels(-1)
     time.sleep(0.25)
     moveBothWheels(0)
-    
+
     setServo1angle(-120)
     time.sleep(0.4)
-    
+
     while True:
         moveBothWheels(1)
         if (gizmo.buttons.x):
-            break
+            return
+
+def autonomousEasyMode():
+    setServo1angle(-180)
+    while not upLimitSwitch.value:
+        moveArm(1)
+        if (gizmo.buttons.x):
+            return
+            
+    moveBothWheels(-1)
+    time.sleep(4.99)
     
+    moveBothWheels(0.3)
+    time.sleep(1.0)
+    moveBothWheels(0)
     
+    moveArm(-1)
+    setServo1angle(180)
+    time.sleep(0.875)
+    moveArm(0.3)
+    
+    moveBothWheels(-1)
+    time.sleep(0.3141529)
+    moveBothWheels(0)
+    setServo1angle(-180)
+    while True:
+        moveBothWheels(1)
+        if (gizmo.buttons.x):
+            return
 # Keep running forever
 while True:
     gizmo.refresh()
@@ -202,7 +231,11 @@ while True:
     previous_servo_angle = setServo1angle(getServoAngle())
 
     if (gizmo.buttons.a):
-        isAutonomous = True 
+        isAutonomous = True
         autonomousMode()
         isAutonomous = False
-    
+    if (gizmo.buttons.y):
+        isAutonomous = True
+        autonomousEasyMode()
+        isAutonomous = False
+
