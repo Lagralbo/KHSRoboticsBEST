@@ -17,16 +17,17 @@ COMMON:
 A Button     - Autonomous Mode
 Y Button     - Autonomous Mode (For easier rounds)
 X Button     - Stop Autonomous Mode
+B Button     - Hold Arm in place when high
 
 Start Button - Switching between tank and arcade modes
 
 Confinguration:
 GPIO_1  goes to the microswitch that determines the upward limit of the arm
 GPIO_2  goes to the microswitch that detects a collision with the bottom of the arm
-SERVO_1 goes to the motor that moves the arm up and down
-SERVO_2 goes to the motor that controls the left wheel
-SERVO_3 goes to the motor that controls the right wheel
-SERVO_4 should go to a servo that opens and closes the arm claw
+MOTOR_2 goes to the motor that controls the left wheel
+MOTOR_3 goes to the motor that controls the right wheel
+MOTOR_4 goes to the motor that moves the arm up and down
+SERVO_1 should go to a servo that opens and closes the arm claw
 """
 
 import board
