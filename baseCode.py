@@ -7,13 +7,13 @@ Controls:
 TANK_MODE:
 Left Joystick (Up&Down)  - Left wheel
 Right Joystick (Up&Down) - Right wheel
-Right Shoulder and Trigger - Move Arm Up&Down
+Right Shoulder and Trigger - Move Arm Up&Down 
 
 ARCADE_MODE:
 Left Joystick (Up&Down)    - Both Wheels
 Left Joystick (Left&Right) - Turning
 Right Joystick (Up&Down)   - Move Arm Up&Down
-COMMON:
+COMMON: 
 A Button     - Autonomous Mode
 Y Button     - Autonomous Mode (For easier rounds)
 X Button     - Stop Autonomous Mode
@@ -56,6 +56,11 @@ motor_right = servo.ContinuousServo(
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
+motor_stick = servo.ContinuousServo(
+    pwmio.PWMOut(gizmo.MOTOR_1, frequency=pwm_freq),
+    min_pulse=min_pulse,
+    max_pulse=max_pulse
+)
 motor_task = servo.ContinuousServo(
     pwmio.PWMOut(gizmo.MOTOR_4, frequency=pwm_freq),
     min_pulse=min_pulse,
@@ -64,8 +69,8 @@ motor_task = servo.ContinuousServo(
 servo_task = servo.Servo(
     pwmio.PWMOut(gizmo.SERVO_1, frequency=pwm_freq),
     actuation_range=servo_range,
-    min_pulse=min_pulse,
-    max_pulse=max_pulse
+    min_pulse=min_pulse - 500,
+    max_pulse=max_pulse + 400,
 )
 
 # Configure the Sensors and Leds
@@ -86,7 +91,6 @@ prev_start_button = False
 servo_speed = 1
 arm_speed = 1
 previous_servo_angle = 0
-isAutonomous = False
 
 # Useful Functions
 def moveLeftWheel(input):  # -1 <input <1
@@ -97,13 +101,17 @@ def moveRightWheel(input):  # -1 <input <1
     throttle_right = input
     motor_right.throttle = throttle_right
 
-def moveBothWheels(input):
+def moveBothWheels(input):  # -1 < input <1
     moveLeftWheel(input)
     moveRightWheel(input)
 
 def moveArm(input):  # -1 <input <1
     throttle_task = input * arm_speed
     motor_task.throttle = throttle_task
+    
+def moveStick(input):  # -1 < input <1
+    throttle_stick = input
+    motor_stick.throttle = throttle_stick
 
 def setServo1angle(angle):
     servo_angle = constrain(previous_servo_angle + angle, 0, servo_range)
@@ -122,6 +130,10 @@ def getServoAngle():
         angle -= 0.8
     return angle * servo_speed
 
+def getStickInput():
+    input = map_range(gizmo.axes.dpad_y, 0, 255, -1.0, 1.0)
+    return input
+
 def getMotorTaskInput(isArcadeMode):
     if (gizmo.buttons.b):
         input = 0.4
@@ -131,15 +143,16 @@ def getMotorTaskInput(isArcadeMode):
         input += -map_range(gizmo.axes.right_y, 0, 255, -1.0, 1.0)
         if (input < -0.7):
             input = -1
-
     else:
         if gizmo.buttons.right_trigger:
             input += 0.7
         elif gizmo.buttons.right_shoulder:
             input -= 1.2
-    
+
     if (input > 1.0):
         input = 1.0
+    if (upLimitSwitch.value):
+        return 0.4
     return input
 def autonomousMode():
     setServo1angle(-180)
@@ -218,9 +231,9 @@ def autonomousEasyMode():
 # Keep running forever
 while True:
     gizmo.refresh()
-    switchLed(0)
-    # print(upLimitSwitch.value)
-
+    switchLed(0) 
+    # print(getStickInput())
+    
     # modes
     if gizmo.buttons.start and not prev_start_button:
         if mode == TANK_MODE:
@@ -245,14 +258,10 @@ while True:
 
     # arms
     moveArm(getMotorTaskInput(mode == ARCADE_MODE))
-    previous_servo_angle = setServo1angle(getServoAngle())
+    moveStick(getStickInput())
+    previous_servo_angle = setServo1angle(getServoAngle()) 
 
     if (gizmo.buttons.a):
-        isAutonomous = True
         autonomousMode()
-        isAutonomous = False
     if (gizmo.buttons.y):
-        isAutonomous = True
         autonomousEasyMode()
-        isAutonomous = False
-
