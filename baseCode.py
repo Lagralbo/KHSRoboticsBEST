@@ -7,19 +7,22 @@ Controls:
 TANK_MODE:
 Left Joystick (Up&Down)  - Left wheel
 Right Joystick (Up&Down) - Right wheel
+Right Shoulder and Trigger - Move Arm Up&Down
 
 ARCADE_MODE:
 Left Joystick (Up&Down)    - Both Wheels
 Left Joystick (Left&Right) - Turning
-
+Right Joystick (Up&Down)   - Move Arm Up&Down
 COMMON:
 A Button     - Autonomous Mode
 Y Button     - Autonomous Mode (For easier rounds)
+X Button     - Stop Autonomous Mode
+
 Start Button - Switching between tank and arcade modes
 
 Confinguration:
 GPIO_1  goes to the microswitch that determines the upward limit of the arm
-GPIO_2  goes to the microswitch that detects a collision with the bottom of the arm(?)
+GPIO_2  goes to the microswitch that detects a collision with the bottom of the arm
 SERVO_1 goes to the motor that moves the arm up and down
 SERVO_2 goes to the motor that controls the left wheel
 SERVO_3 goes to the motor that controls the right wheel
@@ -43,22 +46,22 @@ servo_range = 180  # degrees
 
 # Configure the motors & servos for the ports they are connected to
 motor_left = servo.ContinuousServo(
-    pwmio.PWMOut(gizmo.SERVO_2, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.MOTOR_2, frequency=pwm_freq),
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
 motor_right = servo.ContinuousServo(
-    pwmio.PWMOut(gizmo.SERVO_3, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.MOTOR_3, frequency=pwm_freq),
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
 motor_task = servo.ContinuousServo(
-    pwmio.PWMOut(gizmo.SERVO_1, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.MOTOR_4, frequency=pwm_freq),
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
 servo_task = servo.Servo(
-    pwmio.PWMOut(gizmo.SERVO_4, frequency=pwm_freq),
+    pwmio.PWMOut(gizmo.SERVO_1, frequency=pwm_freq),
     actuation_range=servo_range,
     min_pulse=min_pulse,
     max_pulse=max_pulse
@@ -75,7 +78,7 @@ clawSensor.switch_to_input()
 # Mode
 TANK_MODE = 0
 ARCADE_MODE = 1
-mode = ARCADE_MODE
+mode = TANK_MODE
 prev_start_button = False
 
 # Useful variables
@@ -86,7 +89,7 @@ isAutonomous = False
 
 # Useful Functions
 def moveLeftWheel(input):  # -1 <input <1
-    throttle_left = input
+    throttle_left = -input
     motor_left.throttle = throttle_left
 
 def moveRightWheel(input):  # -1 <input <1
@@ -113,53 +116,64 @@ def switchLed(seconds):  # turns the led and sleep for a determined ammount of t
 def getServoAngle():
     angle = 0
     if gizmo.buttons.left_trigger:
-        angle += 1
+        angle += 0.8
     elif gizmo.buttons.left_shoulder:
-        angle -= 1
+        angle -= 0.8
     return angle * servo_speed
 
 def getMotorTaskInput(isArcadeMode):
-    input = 0.2
+    if (gizmo.buttons.b):
+        input = 0.4
+    else:
+        input = 0.2
     if (isArcadeMode):
-        input = -map_range(gizmo.axes.right_y, 0, 255, -1.0, 1.0)
+        input += -map_range(gizmo.axes.right_y, 0, 255, -1.0, 1.0)
+        if (input < -0.7):
+            input = -1
+
     else:
         if gizmo.buttons.right_trigger:
             input += 0.7
         elif gizmo.buttons.right_shoulder:
-            input -= 0.7
+            input -= 1.2
+    
+    if (input > 1.0):
+        input = 1.0
     return input
 def autonomousMode():
     setServo1angle(-180)
     while not upLimitSwitch.value:
-        moveArm(1)
+        moveArm(0.8)
+        gizmo.refresh()
         if (gizmo.buttons.x):
-            return
+            break
     while not clawSensor.value:
-        moveBothWheels(-1)
+        moveBothWheels(1)
+        gizmo.refresh()
         if (gizmo.buttons.x):
-            return
+            break
 
-    moveBothWheels(0.3)
+    moveBothWheels(-0.3)
     time.sleep(1.0)
     moveBothWheels(0)
-    
-    moveArm(-1)
-    time.sleep(0.875)
+
+    moveArm(-0.3)
+    time.sleep(0.2)
     moveArm(0.3)
-    
-    moveBothWheels(-1)
-    time.sleep(0.1)
+
+    moveBothWheels(0.3)
+    time.sleep(1)
     moveBothWheels(0)
 
-    moveArm(-1)
+    moveArm(-0.5)
     setServo1angle(180)
     time.sleep(1.0)
 
-    moveArm(1)
-    time.sleep(0.5)
+    moveArm(0.8)
+    time.sleep(0.2)
     moveArm(0.3)
 
-    moveBothWheels(-1)
+    moveBothWheels(1)
     time.sleep(0.25)
     moveBothWheels(0)
 
@@ -167,9 +181,10 @@ def autonomousMode():
     time.sleep(0.4)
 
     while True:
-        moveBothWheels(1)
+        moveBothWheels(-1)
+        gizmo.refresh()
         if (gizmo.buttons.x):
-            return
+            break
 
 def autonomousEasyMode():
     setServo1angle(-180)
@@ -177,27 +192,28 @@ def autonomousEasyMode():
         moveArm(1)
         if (gizmo.buttons.x):
             return
-            
+
     moveBothWheels(-1)
     time.sleep(4.99)
-    
+
     moveBothWheels(0.3)
     time.sleep(1.0)
     moveBothWheels(0)
-    
+
     moveArm(-1)
     setServo1angle(180)
     time.sleep(0.875)
     moveArm(0.3)
-    
+
     moveBothWheels(-1)
     time.sleep(0.3141529)
     moveBothWheels(0)
     setServo1angle(-180)
     while True:
         moveBothWheels(1)
+        gizmo.refresh()
         if (gizmo.buttons.x):
-            return
+            break
 # Keep running forever
 while True:
     gizmo.refresh()
