@@ -1,3 +1,4 @@
+
 """
 This code has two control modes: 'Tank Mode' and 'Arcade Mode'. The Start
 button on your gamepad switches the robot between the two modes.
@@ -17,10 +18,12 @@ Right Joystick (Up&Down)   - Move Arm Up&Down
 ____________________________________
 ##### CONTROLLER DOCUMENTATION #####
 
-A Button     - Autonomous Mode
-Y Button     - Autonomous Mode (For easier rounds)
+A Button     - Autonomous Mode (Discontinued)
+Y Button     - Autonomous Mode (For easier rounds) (Discontinued)
 B Button     - deliver habitats
 X Button (Hold)    - Hold Arm in place when high and stops autonomousMode
+Left Shoulder and Trigger - open and close claw
+Dpad (Up and down) - Arm Support
 
 Start Button - Switching between tank and arcade modes
 ___________________________________
@@ -64,14 +67,11 @@ motor_right = servo.ContinuousServo(
     min_pulse=min_pulse,
     max_pulse=max_pulse,
 )
-"""
-# elevator
-motor_stick = servo.ContinuousServo(
+motor_support = servo.ContinuousServo(
     pwmio.PWMOut(gizmo.MOTOR_1, frequency=pwm_freq),
     min_pulse=min_pulse,
     max_pulse=max_pulse
 )
-"""
 motor_arm = servo.ContinuousServo(
     pwmio.PWMOut(gizmo.MOTOR_4, frequency=pwm_freq),
     min_pulse=min_pulse,
@@ -103,14 +103,16 @@ clawSensor.switch_to_input()
 # Mode
 TANK_MODE = 0
 ARCADE_MODE = 1
-mode = TANK_MODE
-prev_start_button = True
+mode = ARCADE_MODE
+prev_start_button = False
 #  start on arcade mode as default
 
 # Useful variables
 servo_speed = 1
 arm_speed = 1
-previous_servo_angle = 0
+previous_servo_angle = 160
+max_angle = 160
+min_angle = 75
 
 # Constants
 steering_constant = -1
@@ -137,17 +139,15 @@ def moveArm(input):  # -1 <input <1
     throttle_task = input * arm_speed
     motor_arm.throttle = throttle_task
 
-
-# not used
-# def moveStick(input):  # -1 < input <1
-#     throttle_stick = input
-#     motor_stick.throttle = throttle_stick
+def moveArmSupport(input):  # -1 < input <1
+    throttle_support = input
+    motor_support.throttle = throttle_support
 
 # elia what is this dogshit code!!!!! # bro is roasting me. Sorry albert :-(
 # go over python objects and create a new object class for servos for our use
 # may not need it tho # Nah it works already, I'm lazy
 def setAndReturnServo1angle(angle):
-    servo_angle = constrain(previous_servo_angle + angle, 0, servo_range)
+    servo_angle = constrain(previous_servo_angle + angle, min_angle, max_angle)
     servo_claw.angle = servo_angle
     return servo_angle
 
@@ -172,11 +172,9 @@ def getServoAngle():  # servo_arm
         angle -= 0.8
     return angle * servo_speed
 
-
-# unused
-# def getStickInput():
-#     input = map_range(gizmo.axes.dpad_y, 0, 255, -1.0, 1.0)
-#     return input
+def getSupportInput():
+    input = map_range(gizmo.axes.dpad_y, 0, 255, -1.0, 1.0)
+    return input
 
 
 def getMotorTaskInput(isArcadeMode):
@@ -196,9 +194,9 @@ def getMotorTaskInput(isArcadeMode):
         if gizmo.buttons.right_trigger:
             input += 0.7
         elif gizmo.buttons.right_shoulder:
-            input -= 1.0`e
+            input -= 1.0
             input *= inputMult
-
+ 
     if input > 1.0:
         input = 1.0
     if upLimitSwitch.value and input > 0 and not gizmo.buttons.x:
@@ -293,7 +291,7 @@ def autonomousEasyMode():
 while True:
     gizmo.refresh()
     switchLed(0)
-    # print(upLimitSwitch.value)
+    # print(map_range(gizmo.axes.left_y, 0, 255, -1.0, 1.0))
 
     # modes
     if gizmo.buttons.start and not prev_start_button:
@@ -314,13 +312,12 @@ while True:
         speed = map_range(gizmo.axes.left_y, 0, 255, -1.0, 1.0)
         steering = steering_constant * map_range(gizmo.axes.left_x, 0, 255, -1.0, 1.0)
         # steering constant is set to -1
-
         moveLeftWheel(constrain(speed + steering, -1.0, 1.0))
         moveRightWheel(constrain(speed - steering, -1.0, 1.0))
 
     # arms
     moveArm(getMotorTaskInput(mode == ARCADE_MODE))
-    # moveStick(getStickInput())
+    moveArmSupport(getSupportInput())
     previous_servo_angle = setAndReturnServo1angle(getServoAngle())
     pushHabitat(gizmo.buttons.b)
 '''
