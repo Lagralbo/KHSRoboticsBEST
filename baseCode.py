@@ -42,7 +42,7 @@ import pwmio
 import digitalio
 import time
 from adafruit_motor import servo
-from adafruit_simplemath import map_range, constrain
+from adafruit_simplemath import map_range,  constrain
 from circuitpython_gizmo import Gizmo
 
 gizmo = Gizmo()
@@ -96,17 +96,17 @@ servo_latch = servo.Servo(
     max_pulse=servo_max_pulse,
 )
 # Configure the Sensors and Leds
-led = digitalio.DigitalInOut(board.LED)
+led = digitalio.DigitalInOut(board.LED) 
 led.direction = digitalio.Direction.OUTPUT
 
 up_limit_switch = digitalio.DigitalInOut(gizmo.GPIO_1)
 up_limit_switch.switch_to_input()
 
 # Mode
-TANK_MODE = 0
+TANK_MODE = 0 
 ARCADE_MODE = 1
 mode = ARCADE_MODE  # start on arcade mode as default
-prev_start_button = False
+prev_start_button = False 
 
 # Useful variables
 servo_speed = 1
@@ -115,7 +115,7 @@ previous_servo_angle = 160
 
 # Constants
 steering_constant = -1
-habitat_push_constant = 80
+habitat_push_constant = 70
 latch_angle_constant = 100
 max_angle = 180  # constants for min and max angle  of the claw
 min_angle = 20
@@ -149,7 +149,7 @@ def setAndReturnServo1angle(angle):  # move the servo by the input angle
 def pushHabitat(input):
     if input:
         servo_latch.angle = latch_angle_constant
-        time.sleep(0.3)
+        time.sleep(0.8)
         servo_habitat.angle = 0
     else:
         servo_habitat.angle = habitat_push_constant
